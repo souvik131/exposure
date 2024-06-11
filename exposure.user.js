@@ -31,6 +31,12 @@ window.jQ = jQuery.noConflict(true);
 
 function runExposureCalc(optionType,isShort,isNifty){
     let data={}
+    let formatting_options = {
+        style: 'currency',
+        currency: 'INR',
+        notation: "compact",
+        compactDisplay: "long",
+    }
     for(let pos of document.getElementsByClassName("open-positions")){
         for (let i in pos.getElementsByClassName("instrument")){
             const instrument = pos.getElementsByClassName("instrument")[i]
@@ -38,14 +44,14 @@ function runExposureCalc(optionType,isShort,isNifty){
                 let tsChunks=instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ")
                 if (isNifty){
                     if(tsChunks[0]=="NIFTY"){
-                        if(tsChunks.length==4&&tsChunks[3]==optionType){
+                        if(tsChunks.length>=4&&tsChunks[3]==optionType){
                             data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
                         }
                     }
                 }
                 if (!isNifty){
                     if (tsChunks[0]!="NIFTY"){
-                        if(tsChunks.length==4&&tsChunks[3]==optionType){
+                        if(tsChunks.length>=4&&tsChunks[3]==optionType){
                             data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
                         }
                     }
@@ -78,32 +84,48 @@ function runExposureCalc(optionType,isShort,isNifty){
             }
         }
 
+        let valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 4)
+
+        valArr.push(new Intl.NumberFormat( "en-IN", formatting_options ).format(data[key].exposure))
+        document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML=valArr.join(" ")
+
 
     }
-    let formatting_options = {
-        style: 'currency',
-        currency: 'INR',
-        notation: "compact",
-        compactDisplay: "long",
-    }
+    
     return new Intl.NumberFormat( "en-IN", formatting_options ).format(Math.abs(exposure));
 }
-function init(){
+function trigger(){
     /*console.log("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))
     navigator.clipboard.writeText("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))*/
-    setTimeout(()=> {
+    try{
         console.log("Stock Short "+runExposureCalc("PE",true,false)+":"+runExposureCalc("CE",true,false))
         console.log("Stock Long "+runExposureCalc("PE",false,false)+":"+runExposureCalc("CE",false,false))
         console.log("Nifty Short ",runExposureCalc("PE",true,true)+":"+runExposureCalc("CE",true,true))
         console.log("Nifty Long ",runExposureCalc("PE",false,true)+":"+runExposureCalc("CE",false,true))
 
         for(let pos of document.getElementsByClassName("open-positions")){
-           console.log(pos.getElementsByClassName("page-title"))
-           if (pos.getElementsByClassName("page-title").length==1){
-               pos.getElementsByClassName("page-title")[0].innerHTML+=" Long/Short Vol : Stock PE "+runExposureCalc("PE",false,false)+"/"+runExposureCalc("PE",true,false)+" CE "+runExposureCalc("CE",false,false)+"/"+runExposureCalc("CE",true,false)
-               pos.getElementsByClassName("page-title")[0].innerHTML+=" | Nifty PE "+runExposureCalc("PE",false,true)+"/"+runExposureCalc("PE",true,true)+" CE "+runExposureCalc("CE",false,true)+"/"+runExposureCalc("CE",true,true)
-           }
+            console.log(pos.getElementsByClassName("page-title"))
+            if (pos.getElementsByClassName("page-title").length==1){
+                let val=pos.getElementsByClassName("page-title")[0].innerHTML.split(")")[0]
+                val+=")"
+                val+=" Long/Short Vol : Stock PE "+runExposureCalc("PE",false,false)+"/"+runExposureCalc("PE",true,false)+" CE "+runExposureCalc("CE",false,false)+"/"+runExposureCalc("CE",true,false)
+                val+=" | Nifty PE "+runExposureCalc("PE",false,true)+"/"+runExposureCalc("PE",true,true)+" CE "+runExposureCalc("CE",false,true)+"/"+runExposureCalc("CE",true,true)
+                pos.getElementsByClassName("page-title")[0].innerHTML=val
+            }
         }
+    }
+    catch(e){
+      console.log(e)
+    }
+
+}
+
+function init(){
+    setTimeout(()=> {
+        trigger()
+        setInterval(()=> {
+            trigger()
+        },1000*5)
     },1000*2)
 }
 
