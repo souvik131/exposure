@@ -46,6 +46,8 @@ function runExposureCalc(optionType,isShort,isNifty){
                     if(tsChunks[0]=="NIFTY"){
                         if(tsChunks.length>=4&&tsChunks[3]==optionType){
                             data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
+                        }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
+                            data[i]={price:0,name:tsChunks[0]+"_FUT"}
                         }
                     }
                 }
@@ -53,10 +55,19 @@ function runExposureCalc(optionType,isShort,isNifty){
                     if (tsChunks[0]!="NIFTY"){
                         if(tsChunks.length>=4&&tsChunks[3]==optionType){
                             data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
+                        }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
+                            data[i]={price:0,name:tsChunks[0]+"_FUT"}
                         }
                     }
                 }
-
+            }
+        }
+        for (let i in pos.getElementsByClassName("last-price")){
+            const lp = pos.getElementsByClassName("last-price")[i]
+            if(typeof lp=='object'&&data[i]){
+                if (data[i].name.endsWith("_FUT")){
+                    data[i].price=+parseFloat(lp.innerHTML.replace(/,/g, ''))
+                }
             }
         }
         for (let i in pos.getElementsByClassName("quantity")){
@@ -74,17 +85,28 @@ function runExposureCalc(optionType,isShort,isNifty){
         }else{
             data[key].exposure=0
         }
+
+
         if(isShort){
+            if (data[key].name.endsWith("_FUT")&&data[key].exposure>0&&optionType=="PE"){
+                exposure-=data[key].exposure
+            }
             if(data[key].exposure<0){
                 exposure+=data[key].exposure
             }
         }else{
+            if (data[key].name.endsWith("_FUT")&&data[key].exposure<0&&optionType=="CE"){
+                exposure-=data[key].exposure
+            }
             if(data[key].exposure>0){
                 exposure+=data[key].exposure
             }
         }
 
         let valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 4)
+        if (valArr[2]=="FUT"){
+            valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 3)
+        }
 
         valArr.push(new Intl.NumberFormat( "en-IN", formatting_options ).format(data[key].exposure))
         document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML=valArr.join(" ")
