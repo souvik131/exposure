@@ -88,17 +88,25 @@ function runExposureCalc(optionType,isShort,isNifty){
 
 
         if(isShort){
-            if (data[key].name.endsWith("_FUT")&&data[key].exposure>0&&optionType=="PE"){
-                exposure-=data[key].exposure
-            }
-            if(data[key].exposure<0){
+            if (data[key].name.endsWith("_FUT")){
+                if (data[key].exposure>0&&optionType=="PE"){
+                   exposure-=data[key].exposure
+                }
+                if (data[key].exposure<0&&optionType=="PE"){
+                   exposure+=data[key].exposure
+                }
+            }else if (data[key].exposure<0){
                 exposure+=data[key].exposure
             }
         }else{
-            if (data[key].name.endsWith("_FUT")&&data[key].exposure<0&&optionType=="CE"){
-                exposure-=data[key].exposure
-            }
-            if(data[key].exposure>0){
+            if (data[key].name.endsWith("_FUT")){
+                if (data[key].exposure<0&&optionType=="CE"){
+                    exposure-=data[key].exposure
+                }
+                if (data[key].exposure>0&&optionType=="CE"){
+                    exposure+=data[key].exposure
+                }
+            }else if (data[key].exposure>0){
                 exposure+=data[key].exposure
             }
         }
@@ -113,7 +121,7 @@ function runExposureCalc(optionType,isShort,isNifty){
 
 
     }
-    
+
     return new Intl.NumberFormat( "en-IN", formatting_options ).format(Math.abs(exposure));
 }
 function trigger(){
