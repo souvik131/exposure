@@ -2,7 +2,7 @@
 
 Follow below mentioned steps
 * Install [Tempermonkey](https://www.tampermonkey.net/) for your browser (works on all browsers. Tested on Chrome, Vivaldi, Edge). [Chrome extension link](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
-* Open [https://github.com/amit0rana/betterOptionsTrading/raw/master/betterKite.user.js](https://github.com/souvik131/exposure/blob/main/exposure.user.js) in a new tab. Or copy paste <https://github.com/souvik131/exposure/blob/main/exposure.user.js>
+* Open [https://github.com/souvik131/exposure/blob/main/exposure.user.js](https://github.com/souvik131/exposure/blob/main/exposure.user.js) in a new tab. Or copy paste <https://github.com/souvik131/exposure/blob/main/exposure.user.js>
 * Tampermonkey will automatically identify the file as userscript and give you option to install. (sell image below)
 * ![tampermonkey install](https://dl.dropbox.com/s/khs3itzctu13ayw/tampermonkeyInstall.png?dl=0)
 * Click on 'Install' button.
