@@ -28,37 +28,23 @@
 /* GLOBAL DECLARATIONS */
 
 window.jQ = jQuery.noConflict(true);
-
-function runExposureCalc(optionType,isShort,isNifty){
-    let data={}
-    let formatting_options = {
+let formatting_options = {
         style: 'currency',
         currency: 'INR',
         notation: "compact",
         compactDisplay: "long",
     }
+function runExposureCalc(optionType,isShort){
+    let data={}
     for(let pos of document.getElementsByClassName("open-positions")){
         for (let i in pos.getElementsByClassName("instrument")){
             const instrument = pos.getElementsByClassName("instrument")[i]
             if(typeof instrument=='object'&&instrument.getElementsByClassName("tradingsymbol").length>0){
                 let tsChunks=instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ")
-                if (isNifty){
-                    if(tsChunks[0]=="NIFTY"){
-                        if(tsChunks.length>=4&&tsChunks[3]==optionType){
-                            data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
-                        }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
-                            data[i]={price:0,name:tsChunks[0]+"_FUT"}
-                        }
-                    }
-                }
-                if (!isNifty){
-                    if (tsChunks[0]!="NIFTY"){
-                        if(tsChunks.length>=4&&tsChunks[3]==optionType){
-                            data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
-                        }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
-                            data[i]={price:0,name:tsChunks[0]+"_FUT"}
-                        }
-                    }
+                if(tsChunks.length>=4&&tsChunks[3]==optionType){
+                    data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
+                }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
+                    data[i]={price:0,name:tsChunks[0]+"_FUT"}
                 }
             }
         }
@@ -78,8 +64,11 @@ function runExposureCalc(optionType,isShort,isNifty){
         }
     }
     let exposure=0
+    let exposureByScript={}
     for(let key in data){
         const value=data[key]
+        const name = value.name.split("_")[0]
+        exposureByScript[name]=exposureByScript[name]||0
         if(value.qty&&value.price){
             data[key].exposure=value.qty*value.price
         }else{
@@ -91,23 +80,32 @@ function runExposureCalc(optionType,isShort,isNifty){
             if (data[key].name.endsWith("_FUT")){
                 if (data[key].exposure>0&&optionType=="PE"){
                    exposure-=data[key].exposure
+                   exposureByScript[name]-=data[key].exposure
                 }
                 if (data[key].exposure<0&&optionType=="PE"){
                    exposure+=data[key].exposure
+                   exposureByScript[name]+=data[key].exposure
                 }
             }else if (data[key].exposure<0){
                 exposure+=data[key].exposure
+                exposureByScript[name]+=data[key].exposure
             }
         }else{
             if (data[key].name.endsWith("_FUT")){
                 if (data[key].exposure<0&&optionType=="CE"){
                     exposure-=data[key].exposure
+                   exposureByScript[name]-=data[key].exposure
                 }
                 if (data[key].exposure>0&&optionType=="CE"){
                     exposure+=data[key].exposure
+                   exposureByScript[name]+=data[key].exposure
                 }
             }else if (data[key].exposure>0){
                 exposure+=data[key].exposure
+                   exposureByScript[name]+=data[key].exposure
+                if (optionType=="PE"){
+                    console.log(name,exposureByScript,optionType)
+                }
             }
         }
 
@@ -122,27 +120,93 @@ function runExposureCalc(optionType,isShort,isNifty){
 
     }
 
-    return new Intl.NumberFormat( "en-IN", formatting_options ).format(Math.abs(exposure));
+    for (let key in exposureByScript){
+        exposureByScript[key]=Math.abs(exposureByScript[key])
+    }
+
+    return exposureByScript;
 }
 function trigger(){
-    /*console.log("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))
-    navigator.clipboard.writeText("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))*/
+
+
     try{
-        console.log("Stock Short "+runExposureCalc("PE",true,false)+":"+runExposureCalc("CE",true,false))
-        console.log("Stock Long "+runExposureCalc("PE",false,false)+":"+runExposureCalc("CE",false,false))
-        console.log("Nifty Short ",runExposureCalc("PE",true,true)+":"+runExposureCalc("CE",true,true))
-        console.log("Nifty Long ",runExposureCalc("PE",false,true)+":"+runExposureCalc("CE",false,true))
+        const peShortVol=runExposureCalc("PE",true)
+        const peLongVol=runExposureCalc("PE",false)
+        const ceShortVol=runExposureCalc("CE",true)
+        const ceLongVol=runExposureCalc("CE",false)
+        const instruments = Object.keys(peShortVol);
+        console.log(peShortVol,peLongVol,ceShortVol,ceLongVol)
+        const combinedData = instruments.map(instrument => ({
+            instrument: instrument,
+            peShortVol: peShortVol[instrument] || 0,
+            peLongVol: peLongVol[instrument] || 0,
+            ceShortVol: ceShortVol[instrument] || 0,
+            ceLongVol: ceLongVol[instrument] || 0
+        }))
+        let dataHTML=`<div class="table-wrapper">
+        <table id="json-table">
+            <thead>
+                <tr>
+                    <th class="product sortable"> Instrument |</th>
+                    <th class="product sortable"> PE Short Vol  |</th>
+                    <th class="product sortable"> PE Long Vol  |</th>
+                    <th class="product sortable"> CE Short Vol  |</th>
+                    <th class="product sortable"> CE Long Vol  |</th>
+                    <th class="product sortable"> PE Net  |</th>
+                    <th class="product sortable"> CE Net  |</th>
+                </tr>
+            </thead>
+            <tbody>`
+
+         const total={
+            instrument: "TOTAL",
+            peShortVol:  0,
+            peLongVol:  0,
+            ceShortVol:  0,
+            ceLongVol:  0
+        }
+         for (let row of combinedData){
+             if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
+                 total.peShortVol+=row.peShortVol
+                 total.peLongVol+=row.peLongVol
+                 total.ceShortVol+=row.ceShortVol
+                 total.ceLongVol+=row.ceLongVol
+                dataHTML += `
+                    <tr><td>${row.instrument}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peShortVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceShortVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol-row.ceShortVol)}</td></tr>
+                `;
+             }
+          }
+        dataHTML += `
+                    <tr><td>${total.instrument}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peShortVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceShortVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceLongVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol-total.peShortVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceLongVol-total.ceShortVol)}</td></tr>
+                `;
+
+            dataHTML+=`</tbody>
+        </table>
+    </div>`
 
         for(let pos of document.getElementsByClassName("open-positions")){
             console.log(pos.getElementsByClassName("page-title"))
             if (pos.getElementsByClassName("page-title").length==1){
                 let val=pos.getElementsByClassName("page-title")[0].innerHTML.split(")")[0]
-                val+=")"
-                val+=" Long/Short Vol : Stock PE "+runExposureCalc("PE",false,false)+"/"+runExposureCalc("PE",true,false)+" CE "+runExposureCalc("CE",false,false)+"/"+runExposureCalc("CE",true,false)
-                val+=" | Nifty PE "+runExposureCalc("PE",false,true)+"/"+runExposureCalc("PE",true,true)+" CE "+runExposureCalc("CE",false,true)+"/"+runExposureCalc("CE",true,true)
+                val+=")<br/>"
+                val+=dataHTML
                 pos.getElementsByClassName("page-title")[0].innerHTML=val
             }
         }
+
+
     }
     catch(e){
       console.log(e)
