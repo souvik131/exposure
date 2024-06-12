@@ -190,7 +190,8 @@ function runExposureCalc(optionType, isShort) {
 
 
 function addRowToTable(row) {
-    return ` <tr><td>${row.instrument}</td>
+    return ` <tr>
+                    <td>${row.instrument}</td>
                     <td class="open ` + ((row.peShortVol) > 0 ? `text-sell` : ``) + ` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.peShortVol).replace("₹","")}</td>
                     <td class="open ` + ((row.peLongVol) > 0 ? `text-buy` : ``) + ` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol).replace("₹","")}</td>
                     <td class="open ` + ((row.peLongVol - row.peShortVol) != 0 ? ((row.peLongVol - row.peShortVol) > 0 ? `text-buy` : `text-sell`) : ``) + ` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol).replace("₹","")}</td>
@@ -200,8 +201,8 @@ function addRowToTable(row) {
                     <td class="open ` + (row.pePnl >= 0 ? `text-green` : `text-red`) + ` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pePnl).replace("₹","")}</td>
                     <td class="open ` + (row.cePnl >= 0 ? `text-green` : `text-red`) + ` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.cePnl).replace("₹","")}</td>
                     <td class="open ` + (row.futPnl >= 0 ? `text-green` : `text-red`) + ` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.futPnl).replace("₹","")}</td>
-                    <td class="open ` + (row.pnl >= 0 ? `text-green` : `text-red`) + ` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl).replace("₹","")}</td></tr>
-          `
+                    <td class="open ` + (row.pnl >= 0 ? `text-green` : `text-red`) + ` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl).replace("₹","")}</td>
+            </tr>`
 }
 
 function trigger() {
