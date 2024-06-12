@@ -28,12 +28,17 @@
 /* GLOBAL DECLARATIONS */
 
 window.jQ = jQuery.noConflict(true);
-let formatting_options = {
+const formatting_options = {
         style: 'currency',
         currency: 'INR',
         notation: "compact",
         compactDisplay: "long",
     }
+const formatting_pnl_options={
+                    style: 'currency',
+                    currency: 'INR',
+                    compactDisplay: "long",
+         }
 function runPnlCalc(){
     let data={}
     for(let pos of document.getElementsByClassName("open-positions")){
@@ -42,9 +47,9 @@ function runPnlCalc(){
             if(typeof instrument=='object'&&instrument.getElementsByClassName("tradingsymbol").length>0){
                 let tsChunks=instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ")
                 if(tsChunks.length>=4){
-                    data[i]={name:tsChunks[0]}
+                    data[i]={name:tsChunks[0],type:tsChunks[3]}
                 }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
-                    data[i]={name:tsChunks[0]}
+                    data[i]={name:tsChunks[0],type:"FUT"}
                 }
             }
         }
@@ -56,13 +61,27 @@ function runPnlCalc(){
         }
     }
     let pnlByScript={}
+    let pePnlByScript={}
+    let cePnlByScript={}
+    let futPnlByScript={}
     for(let key in data){
+        pePnlByScript[data[key].name]=pePnlByScript[data[key].name]||0
+        cePnlByScript[data[key].name]=cePnlByScript[data[key].name]||0
+        futPnlByScript[data[key].name]=futPnlByScript[data[key].name]||0
+        if(data[key].type=="PE"){
+            pePnlByScript[data[key].name]+=data[key].pnl
+        }
+        if(data[key].type=="CE"){
+            cePnlByScript[data[key].name]+=data[key].pnl
+        }
+        if(data[key].type=="FUT"){
+            futPnlByScript[data[key].name]+=data[key].pnl
+        }
         pnlByScript[data[key].name]=pnlByScript[data[key].name]||0
         pnlByScript[data[key].name]+=data[key].pnl
     }
 
-
-    return pnlByScript;
+    return {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript};
 }
 
 function runExposureCalc(optionType,isShort){
@@ -138,7 +157,7 @@ function runExposureCalc(optionType,isShort){
             }
         }
 
-        /*let valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 4)
+       /* let valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 4)
         if (valArr[2]=="FUT"){
             valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 3)
         }
@@ -156,20 +175,39 @@ function runExposureCalc(optionType,isShort){
     return exposureByScript;
 }
 
+
+function addRowToTable(row){
+  return  `
+                    <tr><td>${row.instrument}</td>
+                    <td class="open `+((row.peShortVol)>0?`text-sell`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.peShortVol).replace("₹","")}</td>
+                    <td class="open `+((row.peLongVol)>0?`text-buy`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol).replace("₹","")}</td>
+                    <td class="open `+((row.peLongVol-row.peShortVol)!=0?((row.peLongVol-row.peShortVol)>0?`text-buy`:`text-sell`):``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol).replace("₹","")}</td>
+                    <td class="open `+((row.ceShortVol)>0?`text-sell`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.ceShortVol).replace("₹","")}</td>
+                    <td class="open `+((row.ceLongVol)>0?`text-buy`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol).replace("₹","")}</td>
+                    <td class="open `+((row.ceLongVol-row.ceShortVol)!=0?((row.peLongVol-row.ceShortVol)>0?`text-buy`:`text-sell`):``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol-row.ceShortVol).replace("₹","")}</td>
+                    <td class="open `+(row.pePnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pePnl).replace("₹","")}</td>
+                    <td class="open `+(row.cePnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.cePnl).replace("₹","")}</td>
+                    <td class="open `+(row.futPnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.futPnl).replace("₹","")}</td>
+                    <td class="open `+(row.pnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl).replace("₹","")}</td></tr>
+                `
+}
+
 function trigger(){
 
 
     try{
-        const pnlByScript=runPnlCalc()
+        const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript}=runPnlCalc()
         const peShortVol=runExposureCalc("PE",true)
         const peLongVol=runExposureCalc("PE",false)
         const ceShortVol=runExposureCalc("CE",true)
         const ceLongVol=runExposureCalc("CE",false)
         const instruments = Object.keys(pnlByScript);
-        console.log(pnlByScript)
         const combinedData = instruments.map(instrument => ({
             instrument: instrument,
             pnl: pnlByScript[instrument] || 0,
+            pePnl: pePnlByScript[instrument] || 0,
+            cePnl: cePnlByScript[instrument] || 0,
+            futPnl: futPnlByScript[instrument] || 0,
             peShortVol: peShortVol[instrument] || 0,
             peLongVol: peLongVol[instrument] || 0,
             ceShortVol: ceShortVol[instrument] || 0,
@@ -186,6 +224,9 @@ function trigger(){
                     <th class="product"> CE Short Vol </th>
                     <th class="product"> CE Long Vol  </th>
                     <th class="product"> CE Net  </th>
+                    <th class="product"> PE PNL </th>
+                    <th class="product"> CE PNL </th>
+                    <th class="product"> FUT PNL </th>
                     <th class="product"> PNL </th>
                 </tr>
             </thead>
@@ -197,13 +238,11 @@ function trigger(){
             peLongVol:  0,
             ceShortVol:  0,
             ceLongVol:  0,
-             pnl:0
+            pnl:0,
+            pePnl:  0,
+            cePnl:  0,
+            futPnl:  0,
         }
-         const formatting_pnl_options={
-                    style: 'currency',
-                    currency: 'INR',
-                    compactDisplay: "long",
-         }
          var regex = /(?<!^).(?!$)/g
          let dataHTML = ""
          for (let row of combinedData){
@@ -213,28 +252,14 @@ function trigger(){
                  total.ceShortVol+=row.ceShortVol
                  total.ceLongVol+=row.ceLongVol
                  total.pnl+=row.pnl
-                dataHTML += `
-                    <tr><td>${row.instrument}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol-row.ceShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl).replace("₹","")}</td></tr>
-                `;
+                 total.pePnl+=row.pePnl
+                 total.cePnl+=row.cePnl
+                 total.futPnl+=row.futPnl
+                dataHTML += addRowToTable(row);
              }
           }
-        dataHTML = `
-                    <tr><td>${total.instrument}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol-total.peShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceLongVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceLongVol-total.ceShortVol)}</td>
-                    <td class="open average-price right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options).format(total.pnl).replace("₹","")}</td></tr>
-                `+dataHTML;
+        dataHTML = addRowToTable(total)+dataHTML;
+        //dataHTML += addRowToTable(total);
 
             let dataHTMLEnd=`</tbody>
         </table>
@@ -262,7 +287,7 @@ function init(){
         trigger()
         setInterval(()=> {
             trigger()
-        },1000*30)
+        },1000*5)
     },1000*2)
 }
 
