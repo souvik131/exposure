@@ -150,9 +150,9 @@ function trigger(){
                     <th class="product sortable"> Instrument |</th>
                     <th class="product sortable"> PE Short Vol  |</th>
                     <th class="product sortable"> PE Long Vol  |</th>
+                    <th class="product sortable"> PE Net  |</th>
                     <th class="product sortable"> CE Short Vol  |</th>
                     <th class="product sortable"> CE Long Vol  |</th>
-                    <th class="product sortable"> PE Net  |</th>
                     <th class="product sortable"> CE Net  |</th>
                 </tr>
             </thead>
@@ -165,6 +165,7 @@ function trigger(){
             ceShortVol:  0,
             ceLongVol:  0
         }
+         var regex = /(?<!^).(?!$)/g
          for (let row of combinedData){
              if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
                  total.peShortVol+=row.peShortVol
@@ -175,9 +176,9 @@ function trigger(){
                     <tr><td>${row.instrument}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol)}</td>
-                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol-row.ceShortVol)}</td></tr>
                 `;
              }
@@ -186,15 +187,15 @@ function trigger(){
                     <tr><td>${total.instrument}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol)}</td>
+                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol-total.peShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceLongVol)}</td>
-                    <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.peLongVol-total.peShortVol)}</td>
                     <td>${new Intl.NumberFormat( "en-IN", formatting_options ).format(total.ceLongVol-total.ceShortVol)}</td></tr>
                 `;
 
             dataHTML+=`</tbody>
         </table>
-    </div>`
+    </div><br/>`
 
         for(let pos of document.getElementsByClassName("open-positions")){
             console.log(pos.getElementsByClassName("page-title"))
