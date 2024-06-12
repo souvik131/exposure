@@ -218,12 +218,12 @@ function trigger(){
             <thead>
                 <tr>
                     <th class="product"> Instrument </th>
-                    <th class="product"> PE Short Vol  </th>
-                    <th class="product"> PE Long Vol  </th>
-                    <th class="product"> PE Net  </th>
-                    <th class="product"> CE Short Vol </th>
-                    <th class="product"> CE Long Vol  </th>
-                    <th class="product"> CE Net  </th>
+                    <th class="product"> PE Short Exposure  </th>
+                    <th class="product"> PE Long Exposure  </th>
+                    <th class="product"> PE Net Exposure  </th>
+                    <th class="product"> CE Short Exposure </th>
+                    <th class="product"> CE Long Exposure  </th>
+                    <th class="product"> CE Net Exposure  </th>
                     <th class="product"> PE PNL </th>
                     <th class="product"> CE PNL </th>
                     <th class="product"> FUT PNL </th>
