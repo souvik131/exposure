@@ -56,7 +56,11 @@ function runPnlCalc(){
         for (let i in pos.getElementsByClassName("pnl")){
             const pnl = pos.getElementsByClassName("pnl")[i]
             if(typeof pnl=='object'&&data[i]){
-                data[i].pnl=parseFloat(pnl.getElementsByTagName("*")[0].innerHTML.replace(/,/g, ''))
+                try{
+                    data[i].pnl=parseFloat(pnl.getElementsByTagName("*")[0].innerHTML.replace(/,/g, ''))
+                }catch(e){
+                    data[i].pnl=parseFloat(pnl.innerHTML.replace(/,/g, ''))
+                }
             }
         }
     }
@@ -201,7 +205,7 @@ function trigger(){
         const peLongVol=runExposureCalc("PE",false)
         const ceShortVol=runExposureCalc("CE",true)
         const ceLongVol=runExposureCalc("CE",false)
-        const instruments = Object.keys(pnlByScript);
+        const instruments = Object.keys(peShortVol);
         const combinedData = instruments.map(instrument => ({
             instrument: instrument,
             pnl: pnlByScript[instrument] || 0,
@@ -213,21 +217,25 @@ function trigger(){
             ceShortVol: ceShortVol[instrument] || 0,
             ceLongVol: ceLongVol[instrument] || 0
         }))
-        let dataHTMLStart=`<div class="table-wrapper data-table fold-header sticky">
+        let dataHTMLStart=`<section class="consolidated-positions table-wrapper">
+	<header class="row data-table-header"><h3 class="page-title small"><span>Consolidated</span> </h3></header>
+  	<div>
+    	<div class="data-table fold-header sticky">
+      	<div class="table-wrapper">
         <table id="json-table">
             <thead>
                 <tr>
-                    <th class="product"> Instrument </th>
-                    <th class="product"> PE Short Exposure  </th>
-                    <th class="product"> PE Long Exposure  </th>
-                    <th class="product"> PE Net Exposure  </th>
-                    <th class="product"> CE Short Exposure </th>
-                    <th class="product"> CE Long Exposure  </th>
-                    <th class="product"> CE Net Exposure  </th>
-                    <th class="product"> PE PNL </th>
-                    <th class="product"> CE PNL </th>
-                    <th class="product"> FUT PNL </th>
-                    <th class="product"> PNL </th>
+                    <th> Instrument </th>
+                    <th> PE Short Exposure  </th>
+                    <th> PE Long Exposure  </th>
+                    <th> PE Net Exposure  </th>
+                    <th> CE Short Exposure </th>
+                    <th> CE Long Exposure  </th>
+                    <th> CE Net Exposure  </th>
+                    <th> PE PNL </th>
+                    <th> CE PNL </th>
+                    <th> FUT PNL </th>
+                    <th> PNL </th>
                 </tr>
             </thead>
             <tbody>`
@@ -258,21 +266,21 @@ function trigger(){
                 dataHTML += addRowToTable(row);
              }
           }
-        dataHTML = addRowToTable(total)+dataHTML;
-        //dataHTML += addRowToTable(total);
+        //dataHTML = addRowToTable(total)+dataHTML;
+        dataHTML += addRowToTable(total);
 
             let dataHTMLEnd=`</tbody>
         </table>
-    </div><br/><br/>`
+    </div>
+    </div>
+    </div>
+    </section><br/><br/>`
 
-        for(let pos of document.getElementsByClassName("open-positions")){
-            if (pos.getElementsByClassName("page-title").length==1){
-                let val=pos.getElementsByClassName("page-title")[0].innerHTML.split("</span>")[0]
-                val+="</span><br/>"
-                val+=dataHTMLStart+dataHTML+dataHTMLEnd
-                pos.getElementsByClassName("page-title")[0].innerHTML=val
-            }
-        }
+        let val=document.getElementsByClassName("positions")[0].innerHTML.split(`<section class="open-positions table-wrapper">`)[1]
+        document.getElementsByClassName("positions")[0].innerHTML=dataHTMLStart+dataHTML+dataHTMLEnd+`<section class="open-positions table-wrapper">`+val
+
+            
+        
 
 
     }
@@ -283,12 +291,7 @@ function trigger(){
 }
 
 function init(){
-    setTimeout(()=> {
-        trigger()
-        setInterval(()=> {
-            trigger()
-        },1000*5)
-    },1000*2)
+    setInterval(trigger,1000*2)
 }
 
 ;(function() {
