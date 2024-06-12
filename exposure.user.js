@@ -266,8 +266,8 @@ function trigger(){
                 dataHTML += addRowToTable(row);
              }
           }
-        //dataHTML = addRowToTable(total)+dataHTML;
-        dataHTML += addRowToTable(total);
+        dataHTML = addRowToTable(total)+dataHTML;
+        //dataHTML += addRowToTable(total);
 
             let dataHTMLEnd=`</tbody>
         </table>
