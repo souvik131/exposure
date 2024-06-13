@@ -198,66 +198,67 @@ function addRowToTable(row){
 
 function trigger(){
 
+    if (window.location.href=="https://kite.zerodha.com/positions"){
+        try{
+            const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript}=runPnlCalc()
+            const peShortVol=runExposureCalc("PE",true)
+            const peLongVol=runExposureCalc("PE",false)
+            const ceShortVol=runExposureCalc("CE",true)
+            const ceLongVol=runExposureCalc("CE",false)
+            const instruments = Object.keys(peShortVol);
+            const combinedData = instruments.map(instrument => ({
+                instrument: instrument,
+                pnl: pnlByScript[instrument] || 0,
+                pePnl: pePnlByScript[instrument] || 0,
+                cePnl: cePnlByScript[instrument] || 0,
+                futPnl: futPnlByScript[instrument] || 0,
+                peShortVol: peShortVol[instrument] || 0,
+                peLongVol: peLongVol[instrument] || 0,
+                ceShortVol: ceShortVol[instrument] || 0,
+                ceLongVol: ceLongVol[instrument] || 0
+            }))
 
-    try{
-        const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript}=runPnlCalc()
-        const peShortVol=runExposureCalc("PE",true)
-        const peLongVol=runExposureCalc("PE",false)
-        const ceShortVol=runExposureCalc("CE",true)
-        const ceLongVol=runExposureCalc("CE",false)
-        const instruments = Object.keys(peShortVol);
-        const combinedData = instruments.map(instrument => ({
-            instrument: instrument,
-            pnl: pnlByScript[instrument] || 0,
-            pePnl: pePnlByScript[instrument] || 0,
-            cePnl: cePnlByScript[instrument] || 0,
-            futPnl: futPnlByScript[instrument] || 0,
-            peShortVol: peShortVol[instrument] || 0,
-            peLongVol: peLongVol[instrument] || 0,
-            ceShortVol: ceShortVol[instrument] || 0,
-            ceLongVol: ceLongVol[instrument] || 0
-        }))
-        
 
-         const total={
-            instrument: "TOTAL",
-            peShortVol:  0,
-            peLongVol:  0,
-            ceShortVol:  0,
-            ceLongVol:  0,
-            pnl:0,
-            pePnl:  0,
-            cePnl:  0,
-            futPnl:  0,
-        }
-         var regex = /(?<!^).(?!$)/g
-         let dataHTML = ""
-         for (let row of combinedData){
-           //  if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
-                 total.peShortVol+=row.peShortVol
-                 total.peLongVol+=row.peLongVol
-                 total.ceShortVol+=row.ceShortVol
-                 total.ceLongVol+=row.ceLongVol
-                 total.pnl+=row.pnl
-                 total.pePnl+=row.pePnl
-                 total.cePnl+=row.cePnl
-                 total.futPnl+=row.futPnl
+            const total={
+                instrument: "TOTAL",
+                peShortVol:  0,
+                peLongVol:  0,
+                ceShortVol:  0,
+                ceLongVol:  0,
+                pnl:0,
+                pePnl:  0,
+                cePnl:  0,
+                futPnl:  0,
+            }
+            var regex = /(?<!^).(?!$)/g
+            let dataHTML = ""
+            for (let row of combinedData){
+                //  if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
+                total.peShortVol+=row.peShortVol
+                total.peLongVol+=row.peLongVol
+                total.ceShortVol+=row.ceShortVol
+                total.ceLongVol+=row.ceLongVol
+                total.pnl+=row.pnl
+                total.pePnl+=row.pePnl
+                total.cePnl+=row.cePnl
+                total.futPnl+=row.futPnl
                 dataHTML += addRowToTable(row);
-            // }
-          }
-        dataHTML = addRowToTable(total)+dataHTML;
-        //dataHTML += addRowToTable(total);
+                // }
+            }
+            dataHTML = addRowToTable(total)+dataHTML;
+            //dataHTML += addRowToTable(total);
 
 
-        document.getElementById("json-table-body").innerHTML=dataHTML
-
-            
-        
+            document.getElementById("json-table-body").innerHTML=dataHTML
 
 
-    }
-    catch(e){
-      console.log(e)
+
+
+
+        }
+        catch(e){
+            console.log(e)
+        }
     }
 
 }
@@ -267,36 +268,40 @@ function init(){
         const sec = document.createElement("section");
         sec.classList.add("consolidated-positions");
         sec.classList.add("table-wrapper");
-        sec.innerHTML=`<header class="row data-table-header"><h3 class="page-title small"><span>Consolidated</span> </h3></header>
-  	<div>
-    	<div class="data-table fold-header sticky">
-      	<div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th> Instrument </th>
-                    <th> PE Short Exposure  </th>
-                    <th> PE Long Exposure  </th>
-                    <th> PE Net Exposure  </th>
-                    <th> CE Short Exposure </th>
-                    <th> CE Long Exposure  </th>
-                    <th> CE Net Exposure  </th>
-                    <th> PE PNL </th>
-                    <th> CE PNL </th>
-                    <th> FUT PNL </th>
-                    <th> PNL </th>
-                </tr>
-            </thead>
-            <tbody  id="json-table-body">
-            </tbody>
-        </table>
-    </div>
-    </div>
-    </div>`
+        sec.innerHTML=`<header class="row data-table-header">
+                                <h3 class="page-title small">
+                                        <span>Consolidated</span>
+                                </h3>
+                        </header>
+                  	<div>
+                            	<div class="data-table fold-header sticky">
+                                      	<div class="table-wrapper">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            <th> Instrument </th>
+                                                            <th> PE Short Exposure  </th>
+                                                            <th> PE Long Exposure  </th>
+                                                            <th> PE Net Exposure  </th>
+                                                            <th> CE Short Exposure </th>
+                                                            <th> CE Long Exposure  </th>
+                                                            <th> CE Net Exposure  </th>
+                                                            <th> PE PNL </th>
+                                                            <th> CE PNL </th>
+                                                            <th> FUT PNL </th>
+                                                            <th> PNL </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody  id="json-table-body">
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                    </div>
+                            </div>`
         const element = document.getElementsByClassName("positions")[0];
         const child = document.getElementsByClassName("positions")[1];
         element.insertBefore(sec, child);
-
+        trigger()
         setInterval(trigger,1000*2)
     },1000*3)
 }
