@@ -233,7 +233,7 @@ function trigger(){
          var regex = /(?<!^).(?!$)/g
          let dataHTML = ""
          for (let row of combinedData){
-             if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
+           //  if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
                  total.peShortVol+=row.peShortVol
                  total.peLongVol+=row.peLongVol
                  total.ceShortVol+=row.ceShortVol
@@ -243,7 +243,7 @@ function trigger(){
                  total.cePnl+=row.cePnl
                  total.futPnl+=row.futPnl
                 dataHTML += addRowToTable(row);
-             }
+            // }
           }
         dataHTML = addRowToTable(total)+dataHTML;
         //dataHTML += addRowToTable(total);
