@@ -40,6 +40,7 @@ const formatting_pnl_options={
                     currency: 'INR',
                     compactDisplay: "long",
          }
+let token=""
 function runPnlCalc(){
     let data={}
     for(let pos of document.getElementsByClassName("open-positions")){
@@ -200,6 +201,9 @@ function addRowToTable(row){
 function trigger(){
 
     if (window.location.href=="https://kite.zerodha.com/positions"){
+        for (let pos of document.getElementsByClassName("consolidated-positions")){
+            pos.style.display = 'block';
+        }
         try{
             const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript}=runPnlCalc()
             const peShortVol=runExposureCalc("PE",true)
@@ -243,6 +247,15 @@ function trigger(){
                 total.pePnl+=row.pePnl
                 total.cePnl+=row.cePnl
                 total.futPnl+=row.futPnl
+
+                const myHeaders = new Headers();
+                myHeaders.append("accept", "application/json, text/plain, */*");
+                myHeaders.append("accept-language", "en-US,en;q=0.9");
+                myHeaders.append("content-type", "application/json");
+                myHeaders.append("origin", "https://web.sensibull.com");
+                myHeaders.append("referer", "https://web.sensibull.com/");
+
+
                 dataHTML += addRowToTable(row);
                 // }
             }
@@ -260,11 +273,31 @@ function trigger(){
         catch(e){
             console.log(e)
         }
+    }else{
+        for (let pos of document.getElementsByClassName("consolidated-positions")){
+            pos.style.display = 'none';
+        }
     }
 
 }
 
 function init(){
+    token="enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1)
+    const myHeaders = new Headers();
+    myHeaders.append("accept", "application/json, text/plain, */*");
+    myHeaders.append("authorization", token);
+
+    const requestOptions = {
+        method: "GET",
+        headers: myHeaders,
+        redirect: "follow"
+    };
+
+    fetch("https://kite.zerodha.com/oms/portfolio/positions", requestOptions)
+        .then((response) => response.text())
+        .then((result) => console.log(JSON.parse(result).data))
+        .catch((error) => console.error(error));
+    /*navigator.clipboard.writeText("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))*/
     setTimeout(()=>{
         const sec = document.createElement("section");
         sec.classList.add("consolidated-positions");
