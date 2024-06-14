@@ -566,7 +566,7 @@ async function init(){
         const child = document.getElementsByClassName("positions")[1];
         element.insertBefore(sec, child);
         await trigger()
-        setInterval(trigger,1000*20)
+        setInterval(trigger,1000*2)
     },1000*3)
 }
 
