@@ -28,17 +28,6 @@
 /* GLOBAL DECLARATIONS */
 
 window.jQ = jQuery.noConflict(true);
-const formatting_options = {
-        style: 'currency',
-        currency: 'INR',
-        notation: "compact",
-        compactDisplay: "long",
-    }
-const formatting_pnl_options={
-                    style: 'currency',
-                    currency: 'INR',
-                    compactDisplay: "long",
-         }
 let token=""
 function runPnlCalc(){
     let data={}
@@ -187,24 +176,41 @@ function runAllExposureCalcs() {
 
 
 
+
+function formatAmount(val){
+    return new Intl.NumberFormat( "en-IN", {
+        style: 'currency',
+        currency: 'INR',
+        notation: "compact",
+        compactDisplay: "long",
+    } ).format(val).replace("₹","").replace("-0","0")
+}
+function formatAmountLong(val){
+    return new Intl.NumberFormat( "en-IN", {
+                    style: 'currency',
+                    currency: 'INR',
+                    compactDisplay: "long",
+         } ).format(val).replace("₹","").replace("-0","0")
+}
+
 function addRowToTable(row){
   return  `<tr>
                     <td>${row.instrument}</td>
-                    <td class="open `+((row.peShortVol)>0?`text-sell`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.peShortVol).replace("₹","")}</td>
-                    <td class="open `+((row.peLongVol)>0?`text-buy`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol).replace("₹","")}</td>
-                    <td class="open `+((row.peLongVol-row.peShortVol)!=0?((row.peLongVol-row.peShortVol)>0?`text-buy`:`text-sell`):``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol).replace("₹","")}</td>
-                    <td class="open `+((row.ceShortVol)>0?`text-sell`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.ceShortVol).replace("₹","")}</td>
-                    <td class="open `+((row.ceLongVol)>0?`text-buy`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol).replace("₹","")}</td>
-                    <td class="open `+((row.ceLongVol-row.ceShortVol)!=0?((row.ceLongVol-row.ceShortVol)>0?`text-buy`:`text-sell`):``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol-row.ceShortVol).replace("₹","")}</td>
+
+                    <td><span class="open `+((row.peLongVol)>0?`text-buy`:``)+` right">${formatAmount(row.peLongVol)}</span> / <span class="open `+((row.peShortVol)>0?`text-sell`:``)+` right">${formatAmount(-row.peShortVol)}</span> </td>
+                    <td><span class="open `+((row.ceLongVol)>0?`text-buy`:``)+` right">${formatAmount(row.ceLongVol)}</span> / <span class="open `+((row.ceShortVol)>0?`text-sell`:``)+` right">${formatAmount(-row.ceShortVol)}</span> </td>
+                    <td><span class="open text-red ">${formatAmount(row.peVar)}</span> / <span class="open text-red ">${formatAmount(row.ceVar)}</span></td>
+                    <td><span class="open `+((row.pePremium)>0?`text-red`:`text-green`)+` right">${formatAmount(row.pePremium)} </span> / <span class="open `+((row.cePremium)>0?`text-red`:`text-green`)+` right">${formatAmount(row.cePremium)} </span></td>
                     <td class="open ">${row.positions}</td>
-                    <td class="open `+(row.pePnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pePnl).replace("₹","")}</td>
-                    <td class="open `+(row.cePnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.cePnl).replace("₹","")}</td>
-                    <td class="open `+(row.futPnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.futPnl).replace("₹","")}</td>
-                    <td class="open `+(row.charges>0?`text-red`:``)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.charges).replace("₹","")}</td>
-                    <td class="open `+((row.pnl-row.charges)>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl-row.charges).replace("₹","")}</td>
+                    <td class="open `+(row.pePnl>=0?`text-green`:`text-red`)+`  right">${formatAmount(row.pePnl)}</td>
+                    <td class="open `+(row.cePnl>=0?`text-green`:`text-red`)+`  right">${formatAmount(row.cePnl)}</td>
+                    <td class="open `+(row.futPnl>=0?`text-green`:`text-red`)+`  right">${formatAmount(row.futPnl)}</td>
+                    <td class="open `+(row.charges>0?`text-red`:``)+` pnl right">${formatAmountLong(row.charges)}</td>
+                    <td class="open `+((row.pnl-row.charges)>=0?`text-green`:`text-red`)+` pnl right">${formatAmountLong(row.pnl-row.charges)}</td>
 
            </tr>`
 }
+
 
 async function trigger(){
 
@@ -215,6 +221,123 @@ async function trigger(){
         try{
             const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript,positionsByScript}=runPnlCalc()
             let {peShortVol,peLongVol,ceShortVol,ceLongVol,positions }= await runAllExposureCalcs()
+
+            const groupedPositions={}
+            for (let pos of Object.values(positions)){
+                groupedPositions[pos.name]=groupedPositions[pos.name]||[]
+                groupedPositions[pos.name].push(pos)
+            }
+
+            const ceVar={}
+            const peVar={}
+            const cePremium={}
+            const pePremium={}
+
+            for(const name of Object.keys(groupedPositions)){
+                const legs=groupedPositions[name]
+                let ceStrikeQty=[]
+                let peStrikeQty=[]
+                cePremium[name]=cePremium[name]||0
+                pePremium[name]=pePremium[name]||0
+                for(const leg of legs){
+                     if(leg.typeLeg=="PE"){
+                         peStrikeQty.push({strike:leg.strike,qty:leg.qty})
+                         pePremium[name]+=leg.price*leg.qty
+
+                     }
+                     if(leg.typeLeg=="CE"){
+                         ceStrikeQty.push({strike:leg.strike,qty:leg.qty})
+                         cePremium[name]+=leg.price*leg.qty
+                     }
+
+                     if(leg.typeLeg=="FUT"){
+                        if (leg.qty>0){
+                         peStrikeQty.push({strike:leg.price,qty:leg.qty})
+                        }
+                        if (leg.qty<0){
+                         ceStrikeQty.push({strike:leg.price,qty:leg.qty})
+                        }
+                     }
+                }
+                peStrikeQty=peStrikeQty.sort((a, b) =>b.strike-a.strike)
+                ceStrikeQty=ceStrikeQty.sort((a, b) => a.strike- b.strike)
+                let peRunningQty=0
+                let ceRunningQty=0
+                let lowestPe=-1
+                let lowestCe=-1
+
+
+                let lowest=Infinity
+                for (let i in peStrikeQty){
+                    let el=peStrikeQty[i]
+                    peRunningQty+=el.qty
+                    peStrikeQty[i].cumQty=peRunningQty
+                    if (i>0&&peStrikeQty[i].cumQty>lowest&&peStrikeQty[i-1].cumQty==lowest){
+                        lowestPe=peStrikeQty[i].strike
+                    }
+                    if (peStrikeQty[i].cumQty<lowest){
+                        lowest=peStrikeQty[i].cumQty
+                    }
+
+                }
+                lowest=Infinity
+                for (let i in ceStrikeQty){
+                    let el=ceStrikeQty[i]
+                    ceRunningQty+=el.qty
+                    ceStrikeQty[i].cumQty=ceRunningQty
+                    if (i>0&&ceStrikeQty[i].cumQty>lowest&&ceStrikeQty[i-1].cumQty==lowest){
+                        lowestCe=ceStrikeQty[i].strike
+                    }
+                    if (ceStrikeQty[i].cumQty<lowest){
+                        lowest=ceStrikeQty[i].cumQty
+                    }
+                }
+
+                let putExp=0
+                let callExp=0
+                for(const leg of legs){
+
+
+                     if(leg.typeLeg=="PE"){
+                         if (leg.qty < 0) {
+                             if (lowestPe==-1&&peRunningQty<0){
+                                 putExp=Math.abs(leg.exposure)
+                             }else if (putExp<Math.abs(leg.exposure)){
+                                 putExp += (lowestPe-leg.strike) *leg.qty + leg.price *leg.qty
+                             }
+                         }
+                         if (leg.qty > 0) {
+                             putExp -= leg.price *leg.qty
+                         }
+                     }
+                     if(leg.typeLeg=="CE"){
+                         if (leg.qty < 0) {
+                             if (lowestCe==-1&&ceRunningQty<0){
+                                 callExp=Math.abs(leg.exposure)
+                             }else if (callExp<Math.abs(leg.exposure)){
+                                 callExp += (lowestCe-leg.strike) *leg.qty - leg.price *leg.qty
+                             }
+                         }
+                         if (leg.qty > 0) {
+                             callExp += leg.price *leg.qty
+                         }
+
+                     }
+
+                     if(leg.typeLeg=="FUT"){
+                        if (leg.qty>0){
+                             putExp += (leg.price-lowestPe) *leg.qty
+                        }
+                        if (leg.qty<0){
+                             callExp += (leg.price-lowestCe) *leg.qty
+                        }
+                     }
+
+                }
+                ceVar[name]=callExp
+                peVar[name]=putExp
+            }
+
             const instruments = Object.keys(pnlByScript)
             const chargesByScript = await fetchCharges()
 
@@ -229,7 +352,11 @@ async function trigger(){
                 ceShortVol: ceShortVol[instrument] || 0,
                 ceLongVol: ceLongVol[instrument] || 0,
                 positions: positionsByScript[instrument] || 0,
-                charges: chargesByScript[instrument] || 0
+                charges: chargesByScript[instrument] || 0,
+                ceVar: ceVar[instrument] || 0,
+                peVar: peVar[instrument] || 0,
+                cePremium: cePremium[instrument] || 0,
+                pePremium: pePremium[instrument] || 0,
             }))
 
 
@@ -243,6 +370,10 @@ async function trigger(){
                 pePnl:  0,
                 cePnl:  0,
                 futPnl:  0,
+                ceVar: 0,
+                peVar: 0,
+                cePremium: 0,
+                pePremium: 0,
                 positions:  0,
                 charges:0,
             }
@@ -257,6 +388,10 @@ async function trigger(){
                 total.pePnl+=row.pePnl
                 total.cePnl+=row.cePnl
                 total.futPnl+=row.futPnl
+                total.ceVar+=row.ceVar
+                total.peVar+=row.peVar
+                total.pePremium+=row.pePremium
+                total.cePremium+=row.cePremium
                 total.positions+=row.positions
                 total.charges+=row.charges
                 dataHTML += addRowToTable(row);
@@ -409,18 +544,16 @@ async function init(){
                                                     <thead>
                                                         <tr>
                                                             <th> Instrument </th>
-                                                            <th> PE Short Exposure  </th>
-                                                            <th> PE Long Exposure  </th>
-                                                            <th> PE Net Exposure  </th>
-                                                            <th> CE Short Exposure </th>
-                                                            <th> CE Long Exposure  </th>
-                                                            <th> CE Net Exposure  </th>
+                                                            <th> PE Long / Short Exposure  </th>
+                                                            <th> CE Long / Short Exposure  </th>
+                                                            <th> PE / CE VaR  </th>
+                                                            <th> PE / CE Premium  </th>
                                                             <th> Legs </th>
-                                                            <th> PE PNL </th>
-                                                            <th> CE PNL </th>
-                                                            <th> FUT PNL </th>
-                                                            <th> Charges </th>
-                                                            <th> Net PNL </th>
+                                                            <th class="right"> PE PNL </th>
+                                                            <th class="right"> CE PNL </th>
+                                                            <th class="right"> FUT PNL </th>
+                                                            <th class="right"> Charges </th>
+                                                            <th class="right"> Net PNL </th>
                                                         </tr>
                                                     </thead>
                                                     <tbody  id="json-table-body">
@@ -433,7 +566,7 @@ async function init(){
         const child = document.getElementsByClassName("positions")[1];
         element.insertBefore(sec, child);
         await trigger()
-        setInterval(trigger,1000*2)
+        setInterval(trigger,1000*20)
     },1000*3)
 }
 
