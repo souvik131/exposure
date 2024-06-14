@@ -70,7 +70,9 @@ function runPnlCalc(){
     let pePnlByScript={}
     let cePnlByScript={}
     let futPnlByScript={}
+    let positionsByScript={}
     for(let key in data){
+        positionsByScript[data[key].name]=positionsByScript[data[key].name]||0
         pePnlByScript[data[key].name]=pePnlByScript[data[key].name]||0
         cePnlByScript[data[key].name]=cePnlByScript[data[key].name]||0
         futPnlByScript[data[key].name]=futPnlByScript[data[key].name]||0
@@ -85,8 +87,9 @@ function runPnlCalc(){
         }
         pnlByScript[data[key].name]=pnlByScript[data[key].name]||0
         pnlByScript[data[key].name]+=data[key].pnl
+        positionsByScript[data[key].name]+=1
     }
-    return {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript};
+    return {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript,positionsByScript};
 }
 
 function runExposureCalc(optionType,isShort){
@@ -178,34 +181,38 @@ function runExposureCalc(optionType,isShort){
 
 
 function addRowToTable(row){
-  return  `
-                    <tr><td>${row.instrument}</td>
+  return  `<tr>
+                    <td>${row.instrument}</td>
                     <td class="open `+((row.peShortVol)>0?`text-sell`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.peShortVol).replace("₹","")}</td>
                     <td class="open `+((row.peLongVol)>0?`text-buy`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol).replace("₹","")}</td>
                     <td class="open `+((row.peLongVol-row.peShortVol)!=0?((row.peLongVol-row.peShortVol)>0?`text-buy`:`text-sell`):``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.peLongVol-row.peShortVol).replace("₹","")}</td>
                     <td class="open `+((row.ceShortVol)>0?`text-sell`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(-row.ceShortVol).replace("₹","")}</td>
                     <td class="open `+((row.ceLongVol)>0?`text-buy`:``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol).replace("₹","")}</td>
                     <td class="open `+((row.ceLongVol-row.ceShortVol)!=0?((row.ceLongVol-row.ceShortVol)>0?`text-buy`:`text-sell`):``)+` right">${new Intl.NumberFormat( "en-IN", formatting_options ).format(row.ceLongVol-row.ceShortVol).replace("₹","")}</td>
+                    <td class="open ">${row.positions}</td>
                     <td class="open `+(row.pePnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pePnl).replace("₹","")}</td>
                     <td class="open `+(row.cePnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.cePnl).replace("₹","")}</td>
                     <td class="open `+(row.futPnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.futPnl).replace("₹","")}</td>
-                    <td class="open `+(row.pnl>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl).replace("₹","")}</td></tr>
-                `
+                    <td class="open `+(row.charges>0?`text-red`:``)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.charges).replace("₹","")}</td>
+                    <td class="open `+((row.pnl-row.charges)>=0?`text-green`:`text-red`)+` pnl right">${new Intl.NumberFormat( "en-IN", formatting_pnl_options ).format(row.pnl-row.charges).replace("₹","")}</td>
+
+           </tr>`
 }
 
-function trigger(){
+async function trigger(){
 
     if (window.location.href=="https://kite.zerodha.com/positions"){
         for (let pos of document.getElementsByClassName("consolidated-positions")){
             pos.style.display = 'block';
         }
         try{
-            const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript}=runPnlCalc()
+            const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript,positionsByScript}=runPnlCalc()
             const peShortVol=runExposureCalc("PE",true)
             const peLongVol=runExposureCalc("PE",false)
             const ceShortVol=runExposureCalc("CE",true)
             const ceLongVol=runExposureCalc("CE",false)
-            const instruments = Object.keys(pnlByScript);
+            const instruments = Object.keys(pnlByScript)
+            const chargesByScript = await fetchCharges()
 
             const combinedData = instruments.map(instrument => ({
                 instrument: instrument,
@@ -216,7 +223,9 @@ function trigger(){
                 peShortVol: peShortVol[instrument] || 0,
                 peLongVol: peLongVol[instrument] || 0,
                 ceShortVol: ceShortVol[instrument] || 0,
-                ceLongVol: ceLongVol[instrument] || 0
+                ceLongVol: ceLongVol[instrument] || 0,
+                positions: positionsByScript[instrument] || 0,
+                charges: chargesByScript[instrument] || 0
             }))
 
 
@@ -230,11 +239,12 @@ function trigger(){
                 pePnl:  0,
                 cePnl:  0,
                 futPnl:  0,
+                positions:  0,
+                charges:0,
             }
             var regex = /(?<!^).(?!$)/g
             let dataHTML = ""
             for (let row of combinedData){
-                //  if (row.peShortVol+row.peLongVol+row.ceShortVol+row.ceLongVol>0){
                 total.peShortVol+=row.peShortVol
                 total.peLongVol+=row.peLongVol
                 total.ceShortVol+=row.ceShortVol
@@ -243,27 +253,13 @@ function trigger(){
                 total.pePnl+=row.pePnl
                 total.cePnl+=row.cePnl
                 total.futPnl+=row.futPnl
-
-                const myHeaders = new Headers();
-                myHeaders.append("accept", "application/json, text/plain, */*");
-                myHeaders.append("accept-language", "en-US,en;q=0.9");
-                myHeaders.append("content-type", "application/json");
-                myHeaders.append("origin", "https://web.sensibull.com");
-                myHeaders.append("referer", "https://web.sensibull.com/");
-
-
+                total.positions+=row.positions
+                total.charges+=row.charges
                 dataHTML += addRowToTable(row);
-                // }
+                
             }
             dataHTML = addRowToTable(total)+dataHTML;
-            //dataHTML += addRowToTable(total);
-
-
             document.getElementById("json-table-body").innerHTML=dataHTML
-
-
-
-
 
         }
         catch(e){
@@ -276,10 +272,100 @@ function trigger(){
     }
 
 }
+const fetchCharges = async () => {
+  try {
+    // Fetch the orders
+    const ordersResponse = await fetch("https://kite.zerodha.com/oms/orders", {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "authorization": token,
+      },
+      method: "GET",
+    });
 
-function init(){
-   /* token="enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1)
-    const myHeaders = new Headers();*/
+    if (!ordersResponse.ok) {
+      throw new Error(`Error fetching orders: ${ordersResponse.statusText}`);
+    }
+
+    const ordersData = await ordersResponse.json();
+
+    if (ordersData.status !== "success" || !ordersData.data) {
+      throw new Error("Invalid orders response");
+    }
+
+    // Prepare the body for the second API call
+    const chargesRequestBody = ordersData.data.map(order => ({
+      order_id: order.order_id,
+      exchange: order.exchange,
+      tradingsymbol: order.tradingsymbol,
+      transaction_type: order.transaction_type,
+      variety: order.variety,
+      product: order.product,
+      order_type: order.order_type,
+      quantity: order.quantity,
+      average_price: order.average_price
+    }));
+
+    // Fetch the charges
+    const chargesResponse = await fetch("https://kite.zerodha.com/oms/charges/orders", {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "authorization": token,
+      },
+      method: "POST",
+      body: JSON.stringify(chargesRequestBody),
+    });
+
+    if (!chargesResponse.ok) {
+      throw new Error(`Error fetching charges: ${chargesResponse.statusText}`);
+    }
+
+    const chargesData = await chargesResponse.json();
+
+    if (chargesData.status !== "success" || !chargesData.data) {
+      throw new Error("Invalid charges response");
+    }
+
+    // Combine the orders and charges data based on order_id
+    const combinedData = ordersData.data.map(order => {
+      const charge = chargesData.data.find(c => c.tradingsymbol === order.tradingsymbol && c.transaction_type === order.transaction_type);
+      return { ...order, charges: charge ? charge.charges : null };
+    });
+
+    // Function to extract the name from the tradingsymbol
+    const extractName = (tradingsymbol) => tradingsymbol.match(/^[A-Za-z]+/)[0];
+
+    // Map to store the total charges for each name
+    const chargesMap = new Map();
+
+    combinedData.forEach(order => {
+      if (order.charges) {
+        const name = extractName(order.tradingsymbol);
+        const totalCharges = order.charges.total;
+
+        if (chargesMap.has(name)) {
+          chargesMap.set(name, chargesMap.get(name) + totalCharges);
+        } else {
+          chargesMap.set(name, totalCharges);
+        }
+      }
+    });
+
+    // Convert the map to an object for easier use
+    const chargesObject = Object.fromEntries(chargesMap);
+
+    return chargesObject
+
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+
+
+async function init(){
+    token="enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1)
+    const myHeaders = new Headers();
    // myHeaders.append("accept", "application/json, text/plain, */*");
     /*myHeaders.append("authorization", token);
 
@@ -294,7 +380,9 @@ function init(){
         .then((result) => console.log(JSON.parse(result).data))
         .catch((error) => console.error(error));*/
     /*navigator.clipboard.writeText("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))*/
-    setTimeout(()=>{
+
+
+    setTimeout(async ()=>{
         const sec = document.createElement("section");
         sec.classList.add("consolidated-positions");
         sec.classList.add("table-wrapper");
@@ -316,10 +404,12 @@ function init(){
                                                             <th> CE Short Exposure </th>
                                                             <th> CE Long Exposure  </th>
                                                             <th> CE Net Exposure  </th>
+                                                            <th> Legs </th>
                                                             <th> PE PNL </th>
                                                             <th> CE PNL </th>
                                                             <th> FUT PNL </th>
-                                                            <th> PNL </th>
+                                                            <th> Charges </th>
+                                                            <th> Net PNL </th>
                                                         </tr>
                                                     </thead>
                                                     <tbody  id="json-table-body">
@@ -331,7 +421,7 @@ function init(){
         const element = document.getElementsByClassName("positions")[0];
         const child = document.getElementsByClassName("positions")[1];
         element.insertBefore(sec, child);
-        trigger()
+        await trigger()
         setInterval(trigger,1000*2)
     },1000*3)
 }
@@ -340,3 +430,8 @@ function init(){
     'use strict';
     jQ(window).bind("load", init);
 })();
+
+
+
+
+
