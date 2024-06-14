@@ -199,8 +199,9 @@ function addRowToTable(row){
 
                     <td><span class="open `+((row.peLongVol)>0?`text-buy`:``)+` right">${formatAmount(row.peLongVol)}</span> / <span class="open `+((row.peShortVol)>0?`text-sell`:``)+` right">${formatAmount(-row.peShortVol)}</span> </td>
                     <td><span class="open `+((row.ceLongVol)>0?`text-buy`:``)+` right">${formatAmount(row.ceLongVol)}</span> / <span class="open `+((row.ceShortVol)>0?`text-sell`:``)+` right">${formatAmount(-row.ceShortVol)}</span> </td>
-                    <td><span class="open text-red ">${formatAmount(row.peVar)}</span> / <span class="open text-red ">${formatAmount(row.ceVar)}</span></td>
-                    <td><span class="open `+((row.pePremium)>0?`text-red`:`text-green`)+` right">${formatAmount(row.pePremium)} </span> / <span class="open `+((row.cePremium)>0?`text-red`:`text-green`)+` right">${formatAmount(row.cePremium)} </span></td>
+                    <td><span class="open text-red ">${formatAmount(-row.peVar)}</span> / <span class="open text-red ">${formatAmount(-row.ceVar)}</span></td>
+                    <td><span class="open `+(row.peHedge==0?"":((row.peHedge)>0?`text-red`:`text-green`))+` right">${formatAmount(row.peHedge)} </span> / <span class="open `+(row.ceHedge==0?"":((row.ceHedge)>0?`text-red`:`text-green`))+` right">${formatAmount(row.ceHedge)} </span></td>
+                    <td><span class="open `+(row.pePremium==0?"":((row.pePremium)>0?`text-red`:`text-green`))+` right">${formatAmount(row.pePremium)} </span> / <span class="open `+(row.cePremium==0?"":((row.cePremium)>0?`text-red`:`text-green`))+` right">${formatAmount(row.cePremium)} </span></td>
                     <td class="open ">${row.positions}</td>
                     <td class="open `+(row.pePnl>=0?`text-green`:`text-red`)+`  right">${formatAmount(row.pePnl)}</td>
                     <td class="open `+(row.cePnl>=0?`text-green`:`text-red`)+`  right">${formatAmount(row.cePnl)}</td>
@@ -232,6 +233,8 @@ async function trigger(){
             const peVar={}
             const cePremium={}
             const pePremium={}
+            const ceHedge={}
+            const peHedge={}
 
             for(const name of Object.keys(groupedPositions)){
                 const legs=groupedPositions[name]
@@ -239,15 +242,27 @@ async function trigger(){
                 let peStrikeQty=[]
                 cePremium[name]=cePremium[name]||0
                 pePremium[name]=pePremium[name]||0
+                ceHedge[name]=ceHedge[name]||0
+                peHedge[name]=peHedge[name]||0
                 for(const leg of legs){
                      if(leg.typeLeg=="PE"){
                          peStrikeQty.push({strike:leg.strike,qty:leg.qty})
-                         pePremium[name]+=leg.price*leg.qty
+                         if (leg.qty<0){
+                             pePremium[name]+=leg.price*leg.qty
+                         }else{
+
+                             peHedge[name]+=leg.price*leg.qty
+                         }
 
                      }
                      if(leg.typeLeg=="CE"){
                          ceStrikeQty.push({strike:leg.strike,qty:leg.qty})
-                         cePremium[name]+=leg.price*leg.qty
+                         if (leg.qty<0){
+                             cePremium[name]+=leg.price*leg.qty
+                         }else{
+
+                             ceHedge[name]+=leg.price*leg.qty
+                         }
                      }
 
                      if(leg.typeLeg=="FUT"){
@@ -357,6 +372,8 @@ async function trigger(){
                 peVar: peVar[instrument] || 0,
                 cePremium: cePremium[instrument] || 0,
                 pePremium: pePremium[instrument] || 0,
+                ceHedge: ceHedge[instrument] || 0,
+                peHedge: peHedge[instrument] || 0,
             }))
 
 
@@ -374,6 +391,8 @@ async function trigger(){
                 peVar: 0,
                 cePremium: 0,
                 pePremium: 0,
+                ceHedge: 0,
+                peHedge: 0,
                 positions:  0,
                 charges:0,
             }
@@ -392,6 +411,8 @@ async function trigger(){
                 total.peVar+=row.peVar
                 total.pePremium+=row.pePremium
                 total.cePremium+=row.cePremium
+                total.peHedge+=row.peHedge
+                total.ceHedge+=row.ceHedge
                 total.positions+=row.positions
                 total.charges+=row.charges
                 dataHTML += addRowToTable(row);
@@ -547,7 +568,8 @@ async function init(){
                                                             <th> PE Long / Short Exposure  </th>
                                                             <th> CE Long / Short Exposure  </th>
                                                             <th> PE / CE VaR  </th>
-                                                            <th> PE / CE Premium  </th>
+                                                            <th> PE / CE Bought  </th>
+                                                            <th> PE / CE Sold  </th>
                                                             <th> Legs </th>
                                                             <th class="right"> PE PNL </th>
                                                             <th class="right"> CE PNL </th>
