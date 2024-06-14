@@ -12,7 +12,6 @@
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js
-// @require      https://raw.githubusercontent.com/amit0rana/MonkeyConfig/master/monkeyconfig.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js
 // @require      https://cdn.jsdelivr.net/npm/qs-lite@0.0.3/dist/qs-lite.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.27.0/moment.min.js
@@ -48,9 +47,10 @@ function runPnlCalc(){
             const instrument = pos.getElementsByClassName("instrument")[i]
             if(typeof instrument=='object'&&instrument.getElementsByClassName("tradingsymbol").length>0){
                 let tsChunks=instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ")
-                if(tsChunks.length>=4){
-                    data[i]={name:tsChunks[0],type:tsChunks[3]}
-                }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
+                let typeLeg=tsChunks[tsChunks.length-1]
+                if(typeLeg=="CE"||typeLeg=="PE"){
+                    data[i]={name:tsChunks[0],type:typeLeg}
+                }else if(typeLeg=="FUT"){
                     data[i]={name:tsChunks[0],type:"FUT"}
                 }
             }
@@ -86,7 +86,6 @@ function runPnlCalc(){
         pnlByScript[data[key].name]=pnlByScript[data[key].name]||0
         pnlByScript[data[key].name]+=data[key].pnl
     }
-
     return {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript};
 }
 
@@ -97,10 +96,13 @@ function runExposureCalc(optionType,isShort){
             const instrument = pos.getElementsByClassName("instrument")[i]
             if(typeof instrument=='object'&&instrument.getElementsByClassName("tradingsymbol").length>0){
                 let tsChunks=instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ")
-                if(tsChunks.length>=4&&tsChunks[3]==optionType){
-                    data[i]={price:+tsChunks[2],name:tsChunks[0]+"_"+tsChunks[3]}
-                }else if(tsChunks.length>=3&&tsChunks[2]=="FUT"){
-                    data[i]={price:0,name:tsChunks[0]+"_FUT"}
+                let typeLeg=tsChunks[tsChunks.length-1]
+                let name=tsChunks[0]
+                if(typeLeg==optionType){
+                    let priceVal=tsChunks[tsChunks.length-2]
+                    data[i]={price:+priceVal,name:name+"_"+typeLeg}
+                }else if(typeLeg=="FUT"){
+                    data[i]={price:0,name:name+"_FUT"}
                 }
             }
         }
@@ -163,13 +165,6 @@ function runExposureCalc(optionType,isShort){
             }
         }
 
-       /* let valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 4)
-        if (valArr[2]=="FUT"){
-            valArr=document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ").slice(0, 3)
-        }
-
-        valArr.push(new Intl.NumberFormat( "en-IN", formatting_options ).format(data[key].exposure))
-        document.getElementsByClassName("open-positions")[0].getElementsByClassName("instrument")[key].getElementsByClassName("tradingsymbol")[0].innerHTML=valArr.join(" ")*/
 
 
     }
@@ -210,7 +205,8 @@ function trigger(){
             const peLongVol=runExposureCalc("PE",false)
             const ceShortVol=runExposureCalc("CE",true)
             const ceLongVol=runExposureCalc("CE",false)
-            const instruments = Object.keys(peShortVol);
+            const instruments = Object.keys(pnlByScript);
+
             const combinedData = instruments.map(instrument => ({
                 instrument: instrument,
                 pnl: pnlByScript[instrument] || 0,
@@ -282,10 +278,10 @@ function trigger(){
 }
 
 function init(){
-    token="enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1)
-    const myHeaders = new Headers();
-    myHeaders.append("accept", "application/json, text/plain, */*");
-    myHeaders.append("authorization", token);
+   /* token="enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1)
+    const myHeaders = new Headers();*/
+   // myHeaders.append("accept", "application/json, text/plain, */*");
+    /*myHeaders.append("authorization", token);
 
     const requestOptions = {
         method: "GET",
@@ -296,7 +292,7 @@ function init(){
     fetch("https://kite.zerodha.com/oms/portfolio/positions", requestOptions)
         .then((response) => response.text())
         .then((result) => console.log(JSON.parse(result).data))
-        .catch((error) => console.error(error));
+        .catch((error) => console.error(error));*/
     /*navigator.clipboard.writeText("enctoken "+localStorage.getItem("__storejs_kite_enctoken").slice(1,-1))*/
     setTimeout(()=>{
         const sec = document.createElement("section");
