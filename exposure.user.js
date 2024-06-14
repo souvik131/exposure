@@ -92,92 +92,99 @@ function runPnlCalc(){
     return {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript,positionsByScript};
 }
 
-function runExposureCalc(optionType,isShort){
-    let data={}
-    for(let pos of document.getElementsByClassName("open-positions")){
-        for (let i in pos.getElementsByClassName("instrument")){
-            const instrument = pos.getElementsByClassName("instrument")[i]
-            if(typeof instrument=='object'&&instrument.getElementsByClassName("tradingsymbol").length>0){
-                let tsChunks=instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ")
-                let typeLeg=tsChunks[tsChunks.length-1]
-                let name=tsChunks[0]
-                if(typeLeg==optionType){
-                    let priceVal=tsChunks[tsChunks.length-2]
-                    data[i]={price:+priceVal,name:name+"_"+typeLeg}
-                }else if(typeLeg=="FUT"){
-                    data[i]={price:0,name:name+"_FUT"}
+function runAllExposureCalcs() {
+    let data = {};
+    for (let pos of document.getElementsByClassName("open-positions")) {
+        for (let i in pos.getElementsByClassName("instrument")) {
+            const instrument = pos.getElementsByClassName("instrument")[i];
+            if (typeof instrument == 'object' && instrument.getElementsByClassName("tradingsymbol").length > 0) {
+                let tsChunks = instrument.getElementsByClassName("tradingsymbol")[0].innerHTML.split(" ");
+                let typeLeg = tsChunks[tsChunks.length - 1];
+                let name = tsChunks[0];
+                if (typeLeg == "PE" || typeLeg == "CE" || typeLeg == "FUT") {
+                    let priceVal = tsChunks[tsChunks.length - 2];
+                    data[i] = { strike: typeLeg == "FUT" ? 0 : +priceVal, name: name,typeLeg: typeLeg};
                 }
             }
         }
-        for (let i in pos.getElementsByClassName("last-price")){
-            const lp = pos.getElementsByClassName("last-price")[i]
-            if(typeof lp=='object'&&data[i]){
-                if (data[i].name.endsWith("_FUT")){
-                    data[i].price=+parseFloat(lp.innerHTML.replace(/,/g, ''))
-                }
+        for (let i in pos.getElementsByClassName("last-price")) {
+            const lp = pos.getElementsByClassName("last-price")[i];
+            if (typeof lp == 'object' && data[i]) {
+                data[i].price = +parseFloat(lp.innerHTML.replace(/,/g, ''));
             }
         }
-        for (let i in pos.getElementsByClassName("quantity")){
-            const qty = pos.getElementsByClassName("quantity")[i]
-            if(typeof qty=='object'&&data[i]){
-                data[i].qty=qty.innerHTML
+        for (let i in pos.getElementsByClassName("quantity")) {
+            const qty = pos.getElementsByClassName("quantity")[i];
+            if (typeof qty == 'object' && data[i]) {
+                data[i].qty = +qty.innerHTML.replace(/\t/g, '').replace(/\n/g, '');
             }
         }
     }
-    let exposure=0
-    let exposureByScript={}
-    for(let key in data){
-        const value=data[key]
-        const name = value.name.split("_")[0]
-        exposureByScript[name]=exposureByScript[name]||0
-        if(value.qty&&value.price){
-            data[key].exposure=value.qty*value.price
-        }else{
-            data[key].exposure=0
-        }
 
+    let exposures = {
+        peShortVol: {},
+        peLongVol: {},
+        ceShortVol: {},
+        ceLongVol: {},
+        positions:data,
+    };
 
-        if(isShort){
-            if (data[key].name.endsWith("_FUT")){
-                if (data[key].exposure>0&&optionType=="PE"){
-                   exposure-=data[key].exposure
-                   exposureByScript[name]-=data[key].exposure
-                }
-                if (data[key].exposure<0&&optionType=="PE"){
-                   exposure+=data[key].exposure
-                   exposureByScript[name]+=data[key].exposure
-                }
-            }else if (data[key].exposure<0){
-                exposure+=data[key].exposure
-                exposureByScript[name]+=data[key].exposure
+    for (let key in data) {
+        const value = data[key];
+        const name = value.name;
+        const typeLeg = value.typeLeg;
+        if (value.typeLeg=="FUT"){
+            if (value.qty && value.price) {
+                value.exposure = value.qty * value.price;
+            } else {
+                value.exposure = 0;
             }
         }else{
-            if (data[key].name.endsWith("_FUT")){
-                if (data[key].exposure<0&&optionType=="CE"){
-                    exposure-=data[key].exposure
-                   exposureByScript[name]-=data[key].exposure
-                }
-                if (data[key].exposure>0&&optionType=="CE"){
-                    exposure+=data[key].exposure
-                   exposureByScript[name]+=data[key].exposure
-                }
-            }else if (data[key].exposure>0){
-                exposure+=data[key].exposure
-                   exposureByScript[name]+=data[key].exposure
-
+            if (value.qty && value.strike) {
+                value.exposure = value.qty * value.strike;
+            } else {
+                value.exposure = 0;
             }
         }
 
+        if (typeLeg == "PE") {
+            exposures.peShortVol[name] = exposures.peShortVol[name] || 0;
+            exposures.peLongVol[name] = exposures.peLongVol[name] || 0;
 
+            if (value.exposure < 0) {
+                exposures.peShortVol[name] += Math.abs(value.exposure);
+            } else {
+                exposures.peLongVol[name] += Math.abs(value.exposure);
+            }
+        } else if (typeLeg == "CE") {
+            exposures.ceShortVol[name] = exposures.ceShortVol[name] || 0;
+            exposures.ceLongVol[name] = exposures.ceLongVol[name] || 0;
 
+            if (value.exposure < 0) {
+                exposures.ceShortVol[name] += Math.abs(value.exposure);
+            } else {
+                exposures.ceLongVol[name] += Math.abs(value.exposure);
+            }
+        } else if (typeLeg == "FUT") {
+            exposures.peShortVol[name] = exposures.peShortVol[name] || 0;
+            exposures.peLongVol[name] = exposures.peLongVol[name] || 0;
+            exposures.ceShortVol[name] = exposures.ceShortVol[name] || 0;
+            exposures.ceLongVol[name] = exposures.ceLongVol[name] || 0;
+
+            if (value.exposure > 0) {
+                exposures.ceLongVol[name] += value.exposure;
+                exposures.peShortVol[name] += value.exposure;
+            } else {
+                exposures.ceShortVol[name] += Math.abs(value.exposure);
+                exposures.peLongVol[name] += Math.abs(value.exposure);
+            }
+        }
     }
 
-    for (let key in exposureByScript){
-        exposureByScript[key]=Math.abs(exposureByScript[key])
-    }
-
-    return exposureByScript;
+    return exposures;
 }
+
+
 
 
 function addRowToTable(row){
@@ -207,10 +214,7 @@ async function trigger(){
         }
         try{
             const {pnlByScript,pePnlByScript,cePnlByScript,futPnlByScript,positionsByScript}=runPnlCalc()
-            const peShortVol=runExposureCalc("PE",true)
-            const peLongVol=runExposureCalc("PE",false)
-            const ceShortVol=runExposureCalc("CE",true)
-            const ceLongVol=runExposureCalc("CE",false)
+            let {peShortVol,peLongVol,ceShortVol,ceLongVol,positions }= await runAllExposureCalcs()
             const instruments = Object.keys(pnlByScript)
             const chargesByScript = await fetchCharges()
 
