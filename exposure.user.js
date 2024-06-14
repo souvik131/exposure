@@ -333,7 +333,13 @@ const fetchCharges = async () => {
     });
 
     // Function to extract the name from the tradingsymbol
-    const extractName = (tradingsymbol) => tradingsymbol.match(/^[A-Za-z]+/)[0];
+    const extractName = (tradingsymbol) => {
+        try{
+            tradingsymbol.match(/^[A-Za-z]+/)[0]
+        }catch(e){
+            return tradingsymbol
+        }
+    }
 
     // Map to store the total charges for each name
     const chargesMap = new Map();
