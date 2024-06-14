@@ -260,7 +260,7 @@ async function trigger(){
                 total.positions+=row.positions
                 total.charges+=row.charges
                 dataHTML += addRowToTable(row);
-                
+
             }
             dataHTML = addRowToTable(total)+dataHTML;
             document.getElementById("json-table-body").innerHTML=dataHTML
@@ -339,7 +339,7 @@ const fetchCharges = async () => {
     // Function to extract the name from the tradingsymbol
     const extractName = (tradingsymbol) => {
         try{
-            tradingsymbol.match(/^[A-Za-z]+/)[0]
+            return tradingsymbol.match(/^[A-Za-z]+/)[0]
         }catch(e){
             return tradingsymbol
         }
@@ -358,6 +358,7 @@ const fetchCharges = async () => {
         } else {
           chargesMap.set(name, totalCharges);
         }
+
       }
     });
 
