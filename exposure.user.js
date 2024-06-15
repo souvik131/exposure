@@ -354,7 +354,7 @@ async function trigger(){
             }
 
             const instruments = Object.keys(pnlByScript)
-            const chargesByScript = await fetchCharges()
+            const chargesByScript = (await fetchCharges())||{}
 
             const combinedData = instruments.map(instrument => ({
                 instrument: instrument,
