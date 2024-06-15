@@ -193,10 +193,10 @@ function formatAmountLong(val){
          } ).format(val).replace("₹","").replace("-0","0")
 }
 
+
 function addRowToTable(row){
   return  `<tr>
                     <td>${row.instrument}</td>
-
                     <td><span class="open `+((row.peLongVol)>0?`text-buy`:``)+` right">${formatAmount(row.peLongVol)}</span> / <span class="open `+((row.peShortVol)>0?`text-sell`:``)+` right">${formatAmount(-row.peShortVol)}</span> </td>
                     <td><span class="open `+((row.ceLongVol)>0?`text-buy`:``)+` right">${formatAmount(row.ceLongVol)}</span> / <span class="open `+((row.ceShortVol)>0?`text-sell`:``)+` right">${formatAmount(-row.ceShortVol)}</span> </td>
                     <td><span class="open text-red ">${formatAmount(-row.peVar)}</span> / <span class="open text-red ">${formatAmount(-row.ceVar)}</span></td>
@@ -559,7 +559,7 @@ async function init(){
                                 </h3>
                         </header>
                   	<div>
-                            	<div class="data-table fold-header sticky">
+                            	<div class="data-table fold-header sticky" >
                                       	<div class="table-wrapper">
                                                 <table>
                                                     <thead>
@@ -578,7 +578,7 @@ async function init(){
                                                             <th class="right"> Net PNL </th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody  id="json-table-body">
+                                                    <tbody  id="json-table-body" style="white-space: nowrap;">
                                                     </tbody>
                                                 </table>
                                             </div>
