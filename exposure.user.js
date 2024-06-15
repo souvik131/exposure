@@ -316,7 +316,7 @@ async function trigger(){
                      if(leg.typeLeg=="PE"){
                          if (leg.qty < 0) {
                              if (lowestPe==-1&&peRunningQty<0){
-                                 putExp=Math.abs(leg.exposure)
+                                 putExp+=Math.abs(leg.exposure)
                              }else if (putExp<Math.abs(leg.exposure)){
                                  putExp += (lowestPe-leg.strike) *leg.qty + leg.price *leg.qty
                              }
@@ -328,7 +328,7 @@ async function trigger(){
                      if(leg.typeLeg=="CE"){
                          if (leg.qty < 0) {
                              if (lowestCe==-1&&ceRunningQty<0){
-                                 callExp=Math.abs(leg.exposure)
+                                 callExp+=Math.abs(leg.exposure)
                              }else if (callExp<Math.abs(leg.exposure)){
                                  callExp += (lowestCe-leg.strike) *leg.qty - leg.price *leg.qty
                              }
