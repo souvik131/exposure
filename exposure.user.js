@@ -503,7 +503,7 @@ const fetchCharges = async () => {
             order_type: order.order_type,
             quantity: order.quantity,
             average_price: order.average_price
-        }));
+        })).filter(_=>_.average_price);
 
         // Fetch the charges
         const chargesResponse = await fetch("https://kite.zerodha.com/oms/charges/orders", {
